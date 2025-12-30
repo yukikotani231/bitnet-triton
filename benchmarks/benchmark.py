@@ -67,7 +67,9 @@ def main():
         (128, 784, 512),     # MNIST large batch
         (1, 4096, 4096),     # LLM-like
         (32, 4096, 4096),    # LLM batched
+        (128, 4096, 4096),   # LLM large batch
         (1, 4096, 11008),    # LLaMA FFN
+        (128, 4096, 11008),  # LLaMA FFN large batch
     ]
 
     print(f"{'Config':<25} {'Linear (ms)':>12} {'BitNet (ms)':>12} {'Speedup':>10} {'Mem Ratio':>10}")

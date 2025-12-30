@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from typing import Optional
 
 from .kernels import bitnet_matmul, bitnet_matmul_fused
+from .kernels_v2 import bitnet_matmul_v3 as bitnet_matmul_fast
 from .packing import pack_weights, unpack_weights
 
 
@@ -53,7 +54,7 @@ def bitnet_linear(
     packed_weight: torch.Tensor,
     scale: torch.Tensor,
     original_K: int,
-    fused: bool = True,
+    fused: bool = False,  # Changed default: use optimized kernel
 ) -> torch.Tensor:
     """
     Functional interface for BitNet linear layer
@@ -63,11 +64,14 @@ def bitnet_linear(
         packed_weight: Packed 2-bit weights [N, K // 16]
         scale: Weight scales [N]
         original_K: Original input dimension
-        fused: Use fused kernel with activation quantization
+        fused: Use fused kernel with activation quantization (slower)
 
     Returns:
         output: [..., N]
     """
+    if not fused:
+        # Use optimized v3 kernel
+        return bitnet_matmul_fast(x, packed_weight, scale, original_K)
     return BitLinearFunction.apply(x, packed_weight, scale, original_K, fused)
 
 
@@ -95,7 +99,7 @@ class BitLinearTriton(nn.Module):
         in_features: int,
         out_features: int,
         bias: bool = False,
-        fused: bool = True,
+        fused: bool = False,  # Use optimized kernel by default
     ):
         super().__init__()
 
