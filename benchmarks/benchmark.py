@@ -81,7 +81,7 @@ def main():
         # Create layers
         linear = nn.Linear(in_features, out_features, bias=False).to(device)
 
-        bitnet = BitLinearTriton(in_features, out_features, fused=True).to(device)
+        bitnet = BitLinearTriton(in_features, out_features).to(device)
         bitnet.weight.data.copy_(linear.weight.data)
         bitnet.pack_weights()
 
