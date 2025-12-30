@@ -140,11 +140,56 @@ bitnet-triton/
 - Triton >= 2.0.0
 - CUDA-capable GPU
 
+## Experimental Findings
+
+Comprehensive benchmarks comparing BitNet with other GPU optimization techniques revealed:
+
+### Speed Comparison (MNIST ViT, batch=512)
+
+| Method | Throughput | Relative Speed |
+|--------|------------|----------------|
+| FP16 + Flash Attention + torch.compile | 13,448 samples/sec | **1.00x** (fastest) |
+| FP16 + Flash Attention | 10,462 samples/sec | 0.78x |
+| FP32 (naive) | 3,353 samples/sec | 0.25x |
+| BitNet (2-bit) | 1,219 samples/sec | 0.09x |
+
+### Key Conclusions
+
+1. **For GPU Speed**: Use FP16 + Flash Attention + `torch.compile`
+   - Flash Attention (`F.scaled_dot_product_attention`): 2-3x speedup
+   - FP16 precision: ~2x speedup over FP32
+   - `torch.compile(mode="max-autotune")`: 1.2-1.5x speedup
+
+2. **BitNet's Value = Memory, Not Speed**
+   - 16x weight memory compression
+   - Can fit 4x larger batch sizes in same GPU memory
+   - Useful when model doesn't fit in VRAM
+
+3. **INT8 Quantization**
+   - Native PyTorch INT8 (`torch._int_mm`) is NOT faster than FP16
+   - Requires TensorRT for actual speedup
+
+4. **LUT-based computation** (like BitNet.cpp)
+   - Effective on CPU with SIMD
+   - NOT effective on GPU (Tensor Cores are faster)
+
+### When to Use BitNet
+
+| Use Case | Recommended |
+|----------|-------------|
+| Maximum inference speed | FP16 + Flash Attention + compile |
+| Limited GPU memory | **BitNet** |
+| Batch inference at scale | FP16 or TensorRT INT8 |
+| Edge deployment (CPU) | BitNet with LUT |
+
+See `examples/` for detailed benchmarks.
+
 ## Known Limitations
 
 - Small batch sizes (M < 64) have kernel launch overhead
 - Best performance with batch size >= 128
 - FP16 input not yet optimized
+- **Speed is ~0.1-0.2x of FP16** (trade-off for 16x memory compression)
 
 ## License
 
