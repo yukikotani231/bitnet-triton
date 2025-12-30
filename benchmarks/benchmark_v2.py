@@ -9,7 +9,7 @@ import sys
 sys.path.insert(0, '..')
 
 from bitnet_triton.packing import pack_weights
-from bitnet_triton.kernels_v2 import bitnet_matmul_v3
+from bitnet_triton.kernels import bitnet_matmul
 
 
 def benchmark_fn(fn, *args, num_warmup=10, num_runs=100):
@@ -73,7 +73,7 @@ def main():
         time_linear = benchmark_fn(lambda: linear(x))
 
         # BitNet (optimized)
-        time_bitnet = benchmark_fn(bitnet_matmul_v3, x, packed, scale, in_features)
+        time_bitnet = benchmark_fn(bitnet_matmul, x, packed, scale, in_features)
 
         speedup = time_linear / time_bitnet
 

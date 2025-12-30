@@ -49,7 +49,7 @@ For maximum performance, use the kernels directly:
 
 ```python
 from bitnet_triton.packing import pack_weights
-from bitnet_triton.kernels_v2 import bitnet_matmul_v3
+from bitnet_triton.kernels import bitnet_matmul
 
 # Pack weights once
 weight = torch.randn(4096, 4096).cuda()
@@ -58,7 +58,7 @@ packed, scale = packed.cuda(), scale.cuda()
 
 # Fast inference
 x = torch.randn(128, 4096).cuda()
-output = bitnet_matmul_v3(x, packed, scale, 4096)
+output = bitnet_matmul(x, packed, scale, 4096)
 ```
 
 ## Benchmarks
@@ -125,13 +125,12 @@ Packed:       [0b...00_10_01_00, ...]
 bitnet-triton/
 ├── bitnet_triton/
 │   ├── __init__.py
-│   ├── kernels.py      # Reference implementation
-│   ├── kernels_v2.py   # Optimized kernels
+│   ├── kernels.py      # Optimized Triton kernels
 │   ├── ops.py          # PyTorch layers
 │   └── packing.py      # Weight packing utilities
 └── benchmarks/
     ├── benchmark.py    # Layer benchmark
-    └── benchmark_v2.py # Kernel comparison
+    └── benchmark_v2.py # Kernel benchmark
 ```
 
 ## Requirements

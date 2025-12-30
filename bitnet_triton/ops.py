@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .kernels_v2 import bitnet_matmul_v3
+from .kernels import bitnet_matmul
 from .packing import pack_weights, unpack_weights
 
 
@@ -28,7 +28,7 @@ def bitnet_linear(
     Returns:
         output: [..., N]
     """
-    return bitnet_matmul_v3(x, packed_weight, scale, original_K)
+    return bitnet_matmul(x, packed_weight, scale, original_K)
 
 
 class BitLinearTriton(nn.Module):

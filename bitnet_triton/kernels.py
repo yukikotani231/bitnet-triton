@@ -1,5 +1,5 @@
 """
-BitNet Triton Kernels v2 - Optimized
+BitNet Triton Kernels - Optimized
 
 Key optimizations:
 1. Process 16 weights at a time (matching packed int32 structure)
@@ -27,7 +27,7 @@ import triton.language as tl
     key=['M', 'N', 'K'],
 )
 @triton.jit
-def bitnet_matmul_v3_kernel(
+def _bitnet_matmul_kernel(
     x_ptr,
     packed_ptr,
     scale_ptr,
@@ -112,7 +112,7 @@ def bitnet_matmul_v3_kernel(
     key=['M', 'N', 'K'],
 )
 @triton.jit
-def bitnet_matmul_small_batch_kernel(
+def _bitnet_matmul_small_batch_kernel(
     x_ptr,
     packed_ptr,
     scale_ptr,
@@ -171,13 +171,24 @@ def bitnet_matmul_small_batch_kernel(
     )
 
 
-def bitnet_matmul_v3(
+def bitnet_matmul(
     x: torch.Tensor,
     packed_weight: torch.Tensor,
     scale: torch.Tensor,
     original_K: int,
 ) -> torch.Tensor:
-    """BitNet matmul v3 - tiled with tl.dot"""
+    """
+    BitNet matrix multiplication with packed 2-bit weights.
+
+    Args:
+        x: Input tensor [..., K]
+        packed_weight: Packed 2-bit weights [N, K // 16]
+        scale: Weight scales [N]
+        original_K: Original input dimension
+
+    Returns:
+        output: [..., N]
+    """
     x_shape = x.shape
     x = x.view(-1, x_shape[-1]).contiguous()
     M, K = x.shape
@@ -192,7 +203,7 @@ def bitnet_matmul_v3(
 
     # Use small batch kernel for M <= 32
     if M <= 32:
-        bitnet_matmul_small_batch_kernel[grid](
+        _bitnet_matmul_small_batch_kernel[grid](
             x, packed_weight, scale, output,
             M, N, K,
             x.stride(0), x.stride(1),
@@ -200,7 +211,7 @@ def bitnet_matmul_v3(
             output.stride(0), output.stride(1),
         )
     else:
-        bitnet_matmul_v3_kernel[grid](
+        _bitnet_matmul_kernel[grid](
             x, packed_weight, scale, output,
             M, N, K,
             x.stride(0), x.stride(1),
@@ -209,7 +220,3 @@ def bitnet_matmul_v3(
         )
 
     return output.view(*x_shape[:-1], N)
-
-
-# Alias
-bitnet_matmul_fast = bitnet_matmul_v3
