@@ -63,17 +63,40 @@ output = bitnet_matmul_v3(x, packed, scale, 4096)
 
 ## Benchmarks
 
-Tested on NVIDIA RTX A4000:
+### RTX 3070
 
-| Config | nn.Linear | BitNet v3 | Speedup | Memory |
-|--------|-----------|-----------|---------|--------|
-| 128×4096→4096 | 0.58 ms | 0.79 ms | 0.73x | 15.9x smaller |
-| 128×4096→11008 | 1.84 ms | 1.46 ms | **1.26x** | 15.9x smaller |
+| Config | nn.Linear | BitNet | Speedup | Memory |
+|--------|-----------|--------|---------|--------|
+| 128×4096→4096 | 0.64 ms | 0.82 ms | 0.78x | 16x smaller |
+| 128×4096→11008 | 2.54 ms | 1.86 ms | **1.37x** | 16x smaller |
+| 512×4096→4096 | 7.58 ms | 3.21 ms | **2.36x** | 16x smaller |
+
+### RTX A4000
+
+| Config | nn.Linear | BitNet | Speedup | Memory |
+|--------|-----------|--------|---------|--------|
+| 128×4096→4096 | 0.68 ms | 0.79 ms | 0.86x | 16x smaller |
+| 128×4096→11008 | 2.62 ms | 1.77 ms | **1.48x** | 16x smaller |
+| 256×4096→11008 | 4.11 ms | 3.30 ms | **1.25x** | 16x smaller |
 
 **Key Results:**
 - **16x memory compression** achieved
-- **1.26x speedup** for large batch LLM-style workloads
-- Smaller batches have kernel overhead (optimization ongoing)
+- **Up to 2.36x speedup** for large batch workloads
+- Best performance with batch size >= 128
+
+## Performance Characteristics
+
+| Batch Size | Performance |
+|------------|-------------|
+| 1-32 | Slower than cuBLAS (kernel overhead) |
+| 64-128 | Comparable to cuBLAS |
+| 128+ | **Faster than cuBLAS** |
+
+**Best use cases:**
+- High-resolution image generation (DiT with large sequence length)
+- Batch inference services
+- Training with large batch sizes
+- Memory-constrained environments
 
 ## How It Works
 
@@ -89,7 +112,7 @@ Mapped:       [0, 1, 2, 0, ...]
 Packed:       [0b...00_10_01_00, ...]
 ```
 
-### Optimized Kernel (v3)
+### Optimized Kernel
 
 - Tiled matrix multiplication with `tl.dot`
 - Aligned 2-bit unpacking (BLOCK_K = multiple of 16)
@@ -102,14 +125,13 @@ Packed:       [0b...00_10_01_00, ...]
 bitnet-triton/
 ├── bitnet_triton/
 │   ├── __init__.py
-│   ├── kernels.py      # Original kernels
-│   ├── kernels_v2.py   # Optimized kernels (v3)
+│   ├── kernels.py      # Reference implementation
+│   ├── kernels_v2.py   # Optimized kernels
 │   ├── ops.py          # PyTorch layers
 │   └── packing.py      # Weight packing utilities
-├── benchmarks/
-│   ├── benchmark.py
-│   └── benchmark_v2.py # Kernel comparison
-└── examples/
+└── benchmarks/
+    ├── benchmark.py    # Layer benchmark
+    └── benchmark_v2.py # Kernel comparison
 ```
 
 ## Requirements
