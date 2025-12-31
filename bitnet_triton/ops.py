@@ -68,8 +68,8 @@ class BitLinearTriton(nn.Module):
         nn.init.kaiming_uniform_(self.weight)
 
         # Packed weights for inference (registered as buffers)
-        self.register_buffer('packed_weight', None)
-        self.register_buffer('weight_scale', None)
+        self.register_buffer("packed_weight", None)
+        self.register_buffer("weight_scale", None)
         self._packed = False
 
     @property
@@ -103,11 +103,7 @@ class BitLinearTriton(nn.Module):
             return
 
         if self.packed_weight.is_cuda:
-            weight = unpack_weights(
-                self.packed_weight,
-                self.weight_scale,
-                self.in_features
-            )
+            weight = unpack_weights(self.packed_weight, self.weight_scale, self.in_features)
         else:
             raise RuntimeError("Unpacking requires CUDA")
 
@@ -155,7 +151,7 @@ class BitLinearTriton(nn.Module):
         return (w_quantized - w).detach() + w
 
     @classmethod
-    def from_linear(cls, linear: nn.Linear) -> 'BitLinearTriton':
+    def from_linear(cls, linear: nn.Linear) -> "BitLinearTriton":
         """
         Create BitLinearTriton from an existing nn.Linear layer
 
@@ -174,7 +170,7 @@ class BitLinearTriton(nn.Module):
         return layer
 
     @classmethod
-    def from_bitlinear(cls, bitlinear: nn.Module) -> 'BitLinearTriton':
+    def from_bitlinear(cls, bitlinear: nn.Module) -> "BitLinearTriton":
         """
         Create BitLinearTriton from a BitLinear layer
 
@@ -194,9 +190,9 @@ class BitLinearTriton(nn.Module):
 
     def extra_repr(self) -> str:
         return (
-            f'in_features={self.in_features}, '
-            f'out_features={self.out_features}, '
-            f'packed={self._packed}'
+            f"in_features={self.in_features}, "
+            f"out_features={self.out_features}, "
+            f"packed={self._packed}"
         )
 
 

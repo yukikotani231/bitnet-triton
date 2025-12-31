@@ -15,16 +15,16 @@ import triton.language as tl
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_M': 16, 'BLOCK_N': 64, 'BLOCK_K': 64}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 64, 'BLOCK_K': 64}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 64, 'BLOCK_K': 32}, num_warps=4, num_stages=4),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 64, 'BLOCK_K': 64}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 128, 'BLOCK_K': 32}, num_warps=8, num_stages=3),
-        triton.Config({'BLOCK_M': 128, 'BLOCK_N': 64, 'BLOCK_K': 32}, num_warps=8, num_stages=3),
-        triton.Config({'BLOCK_M': 128, 'BLOCK_N': 128, 'BLOCK_K': 32}, num_warps=8, num_stages=2),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 32, 'BLOCK_K': 128}, num_warps=4, num_stages=3),
+        triton.Config({"BLOCK_M": 16, "BLOCK_N": 64, "BLOCK_K": 64}, num_warps=4, num_stages=3),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 64, "BLOCK_K": 64}, num_warps=4, num_stages=3),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64, "BLOCK_K": 32}, num_warps=4, num_stages=4),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64, "BLOCK_K": 64}, num_warps=4, num_stages=3),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 128, "BLOCK_K": 32}, num_warps=8, num_stages=3),
+        triton.Config({"BLOCK_M": 128, "BLOCK_N": 64, "BLOCK_K": 32}, num_warps=8, num_stages=3),
+        triton.Config({"BLOCK_M": 128, "BLOCK_N": 128, "BLOCK_K": 32}, num_warps=8, num_stages=2),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 32, "BLOCK_K": 128}, num_warps=4, num_stages=3),
     ],
-    key=['M', 'N', 'K'],
+    key=["M", "N", "K"],
 )
 @triton.jit
 def _bitnet_matmul_kernel(
@@ -32,10 +32,15 @@ def _bitnet_matmul_kernel(
     packed_ptr,
     scale_ptr,
     output_ptr,
-    M, N, K,
-    stride_xm, stride_xk,
-    stride_pn, stride_pk,
-    stride_om, stride_on,
+    M,
+    N,
+    K,
+    stride_xm,
+    stride_xk,
+    stride_pn,
+    stride_pk,
+    stride_om,
+    stride_on,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
     BLOCK_K: tl.constexpr,
@@ -68,7 +73,7 @@ def _bitnet_matmul_kernel(
         x = tl.load(
             x_ptr + offs_m[:, None] * stride_xm + offs_k[None, :] * stride_xk,
             mask=x_mask,
-            other=0.0
+            other=0.0,
         ).to(tl.float32)
 
         # Compute pack indices for this k block
@@ -80,7 +85,7 @@ def _bitnet_matmul_kernel(
         packed = tl.load(
             packed_ptr + offs_n[:, None] * stride_pn + pack_idx[None, :] * stride_pk,
             mask=w_mask,
-            other=0
+            other=0,
         )
 
         # Unpack 2-bit weights
@@ -97,19 +102,19 @@ def _bitnet_matmul_kernel(
     tl.store(
         output_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on,
         output,
-        mask=out_mask
+        mask=out_mask,
     )
 
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_M': 16, 'BLOCK_N': 128, 'BLOCK_K': 64}, num_warps=4, num_stages=4),
-        triton.Config({'BLOCK_M': 16, 'BLOCK_N': 64, 'BLOCK_K': 128}, num_warps=4, num_stages=3),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 64, 'BLOCK_K': 64}, num_warps=4, num_stages=4),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 128, 'BLOCK_K': 32}, num_warps=4, num_stages=4),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 64, 'BLOCK_K': 32}, num_warps=4, num_stages=4),
+        triton.Config({"BLOCK_M": 16, "BLOCK_N": 128, "BLOCK_K": 64}, num_warps=4, num_stages=4),
+        triton.Config({"BLOCK_M": 16, "BLOCK_N": 64, "BLOCK_K": 128}, num_warps=4, num_stages=3),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 64, "BLOCK_K": 64}, num_warps=4, num_stages=4),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 128, "BLOCK_K": 32}, num_warps=4, num_stages=4),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64, "BLOCK_K": 32}, num_warps=4, num_stages=4),
     ],
-    key=['M', 'N', 'K'],
+    key=["M", "N", "K"],
 )
 @triton.jit
 def _bitnet_matmul_small_batch_kernel(
@@ -117,10 +122,15 @@ def _bitnet_matmul_small_batch_kernel(
     packed_ptr,
     scale_ptr,
     output_ptr,
-    M, N, K,
-    stride_xm, stride_xk,
-    stride_pn, stride_pk,
-    stride_om, stride_on,
+    M,
+    N,
+    K,
+    stride_xm,
+    stride_xk,
+    stride_pn,
+    stride_pk,
+    stride_om,
+    stride_on,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
     BLOCK_K: tl.constexpr,
@@ -144,7 +154,7 @@ def _bitnet_matmul_small_batch_kernel(
         x = tl.load(
             x_ptr + offs_m[:, None] * stride_xm + offs_k[None, :] * stride_xk,
             mask=x_mask,
-            other=0.0
+            other=0.0,
         ).to(tl.float32)
 
         pack_idx = offs_k // 16
@@ -154,7 +164,7 @@ def _bitnet_matmul_small_batch_kernel(
         packed = tl.load(
             packed_ptr + offs_n[:, None] * stride_pn + pack_idx[None, :] * stride_pk,
             mask=w_mask,
-            other=0
+            other=0,
         )
 
         w_bits = (packed >> (bit_idx[None, :] * 2)) & 0b11
@@ -167,7 +177,7 @@ def _bitnet_matmul_small_batch_kernel(
     tl.store(
         output_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on,
         output,
-        mask=out_mask
+        mask=out_mask,
     )
 
 
@@ -196,27 +206,44 @@ def bitnet_matmul(
 
     output = torch.empty(M, N, dtype=x.dtype, device=x.device)
 
-    grid = lambda META: (
-        triton.cdiv(M, META['BLOCK_M']),
-        triton.cdiv(N, META['BLOCK_N']),
-    )
+    def grid(META):
+        return (
+            triton.cdiv(M, META["BLOCK_M"]),
+            triton.cdiv(N, META["BLOCK_N"]),
+        )
 
     # Use small batch kernel for M <= 32
     if M <= 32:
         _bitnet_matmul_small_batch_kernel[grid](
-            x, packed_weight, scale, output,
-            M, N, K,
-            x.stride(0), x.stride(1),
-            packed_weight.stride(0), packed_weight.stride(1),
-            output.stride(0), output.stride(1),
+            x,
+            packed_weight,
+            scale,
+            output,
+            M,
+            N,
+            K,
+            x.stride(0),
+            x.stride(1),
+            packed_weight.stride(0),
+            packed_weight.stride(1),
+            output.stride(0),
+            output.stride(1),
         )
     else:
         _bitnet_matmul_kernel[grid](
-            x, packed_weight, scale, output,
-            M, N, K,
-            x.stride(0), x.stride(1),
-            packed_weight.stride(0), packed_weight.stride(1),
-            output.stride(0), output.stride(1),
+            x,
+            packed_weight,
+            scale,
+            output,
+            M,
+            N,
+            K,
+            x.stride(0),
+            x.stride(1),
+            packed_weight.stride(0),
+            packed_weight.stride(1),
+            output.stride(0),
+            output.stride(1),
         )
 
     return output.view(*x_shape[:-1], N)

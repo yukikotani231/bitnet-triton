@@ -2,14 +2,16 @@
 BitNet Kernel Benchmark
 """
 
+import sys
 import time
+
 import torch
 import torch.nn as nn
-import sys
-sys.path.insert(0, '..')
 
-from bitnet_triton.packing import pack_weights
+sys.path.insert(0, "..")
+
 from bitnet_triton.kernels import bitnet_matmul
+from bitnet_triton.packing import pack_weights
 
 
 def benchmark_fn(fn, *args, num_warmup=10, num_runs=100):
@@ -79,27 +81,29 @@ def main():
 
         print(f"{config_str:<22} {time_linear:>12.3f} {time_bitnet:>12.3f} {speedup:>10.2f}x")
 
-        results.append({
-            'config': config_str,
-            'linear': time_linear,
-            'bitnet': time_bitnet,
-            'speedup': speedup,
-        })
+        results.append(
+            {
+                "config": config_str,
+                "linear": time_linear,
+                "bitnet": time_bitnet,
+                "speedup": speedup,
+            }
+        )
 
     print()
     print("=" * 60)
     print("Summary")
     print("=" * 60)
 
-    best_speedup = max(r['speedup'] for r in results)
-    best_config = [r for r in results if r['speedup'] == best_speedup][0]['config']
+    best_speedup = max(r["speedup"] for r in results)
+    best_config = [r for r in results if r["speedup"] == best_speedup][0]["config"]
 
     print(f"Best speedup: {best_speedup:.2f}x ({best_config})")
 
-    wins = [r for r in results if r['speedup'] >= 1.0]
+    wins = [r for r in results if r["speedup"] >= 1.0]
     print(f"Configs beating Linear: {len(wins)}/{len(results)}")
     if wins:
-        for w in sorted(wins, key=lambda x: -x['speedup']):
+        for w in sorted(wins, key=lambda x: -x["speedup"]):
             print(f"  - {w['config']}: {w['speedup']:.2f}x")
 
 

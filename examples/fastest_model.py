@@ -4,8 +4,9 @@ Fastest GPU Model - Real optimizations that actually work
 No bullshit. Just speed.
 """
 
-import time
 import gc
+import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -26,11 +27,12 @@ def benchmark(fn, num_warmup=10, num_runs=100):
 
 class NaiveAttention(nn.Module):
     """Slow attention - for comparison"""
+
     def __init__(self, dim, num_heads):
         super().__init__()
         self.num_heads = num_heads
         self.head_dim = dim // num_heads
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
         self.qkv = nn.Linear(dim, dim * 3)
         self.proj = nn.Linear(dim, dim)
 
@@ -49,6 +51,7 @@ class NaiveAttention(nn.Module):
 
 class FlashAttention(nn.Module):
     """Fast attention using PyTorch's scaled_dot_product_attention"""
+
     def __init__(self, dim, num_heads):
         super().__init__()
         self.num_heads = num_heads
@@ -70,6 +73,7 @@ class FlashAttention(nn.Module):
 
 class FastTransformerBlock(nn.Module):
     """Optimized transformer block"""
+
     def __init__(self, dim, num_heads, mlp_ratio=4):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
@@ -89,6 +93,7 @@ class FastTransformerBlock(nn.Module):
 
 class SlowTransformerBlock(nn.Module):
     """Naive transformer block for comparison"""
+
     def __init__(self, dim, num_heads, mlp_ratio=4):
         super().__init__()
         self.norm1 = nn.LayerNorm(dim)
@@ -114,7 +119,7 @@ def main():
 
     # Check Flash Attention support
     print("Flash Attention backend:", end=" ")
-    if hasattr(torch.backends.cuda, 'flash_sdp_enabled'):
+    if hasattr(torch.backends.cuda, "flash_sdp_enabled"):
         print("Available")
     else:
         print("Not available")
@@ -144,14 +149,14 @@ def main():
         try:
             naive_time = benchmark(lambda: naive(x))
         except RuntimeError:  # OOM
-            naive_time = float('inf')
+            naive_time = float("inf")
 
         # Flash
         flash = FlashAttention(dim, heads).cuda().half()
         flash_time = benchmark(lambda: flash(x))
 
-        speedup = naive_time / flash_time if naive_time != float('inf') else float('inf')
-        naive_str = f"{naive_time:.4f}" if naive_time != float('inf') else "OOM"
+        speedup = naive_time / flash_time if naive_time != float("inf") else float("inf")
+        naive_str = f"{naive_time:.4f}" if naive_time != float("inf") else "OOM"
 
         print(f"{seq_len:<12} {naive_str:>12} {flash_time:>12.4f} {speedup:>10.2f}x")
 
@@ -176,8 +181,7 @@ def main():
 
     # Compiled
     model_compiled = torch.compile(
-        FastTransformerBlock(dim, heads).cuda().half(),
-        mode="max-autotune"
+        FastTransformerBlock(dim, heads).cuda().half(), mode="max-autotune"
     )
     # Warmup compilation
     for _ in range(5):
@@ -217,8 +221,8 @@ def main():
     bf16_time = benchmark(lambda: model_bf16(x_bf16))
 
     print(f"FP32: {fp32_time:.4f} ms (1.00x)")
-    print(f"FP16: {fp16_time:.4f} ms ({fp32_time/fp16_time:.2f}x)")
-    print(f"BF16: {bf16_time:.4f} ms ({fp32_time/bf16_time:.2f}x)")
+    print(f"FP16: {fp16_time:.4f} ms ({fp32_time / fp16_time:.2f}x)")
+    print(f"BF16: {bf16_time:.4f} ms ({fp32_time / bf16_time:.2f}x)")
     print()
 
     del model_fp32, model_fp16, model_bf16
@@ -253,7 +257,7 @@ def main():
         try:
             naive_time = benchmark(lambda: naive_model(x_fp32), num_runs=50)
         except RuntimeError:
-            naive_time = float('inf')
+            naive_time = float("inf")
 
         del naive_model
         gc.collect()
@@ -262,8 +266,7 @@ def main():
         # Optimized: FP16, flash attention, compiled
         x_fp16 = x_fp32.half()
         fast_model = torch.compile(
-            FastTransformerBlock(dim, heads).cuda().half(),
-            mode="max-autotune"
+            FastTransformerBlock(dim, heads).cuda().half(), mode="max-autotune"
         )
         # Warmup
         for _ in range(3):
@@ -273,8 +276,8 @@ def main():
 
         fast_time = benchmark(lambda: fast_model(x_fp16), num_runs=50)
 
-        speedup = naive_time / fast_time if naive_time != float('inf') else float('inf')
-        naive_str = f"{naive_time:.3f}" if naive_time != float('inf') else "OOM"
+        speedup = naive_time / fast_time if naive_time != float("inf") else float("inf")
+        naive_str = f"{naive_time:.3f}" if naive_time != float("inf") else "OOM"
 
         print(f"{name:<30} {naive_str:>12} {fast_time:>12.3f} {speedup:>10.1f}x")
 

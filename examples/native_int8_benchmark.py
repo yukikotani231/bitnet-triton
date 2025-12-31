@@ -5,10 +5,10 @@ Demonstrates actual INT8 Tensor Core performance using PyTorch's native INT8 mat
 This is the foundation of TensorRT INT8 acceleration.
 """
 
-import time
 import gc
+import time
+
 import torch
-import torch.nn as nn
 
 
 def benchmark_matmul(fn, num_warmup=20, num_runs=100):
@@ -48,11 +48,13 @@ def main():
         (256, 4096, 4096),
         (512, 4096, 4096),
         (1024, 4096, 4096),
-        (32, 4096, 11008),   # LLaMA MLP up-proj
+        (32, 4096, 11008),  # LLaMA MLP up-proj
         (128, 4096, 11008),
     ]
 
-    print(f"{'Config (M,K,N)':<25} {'FP32 (ms)':>12} {'FP16 (ms)':>12} {'INT8 (ms)':>12} {'INT8 speedup':>14}")
+    print(
+        f"{'Config (M,K,N)':<25} {'FP32 (ms)':>12} {'FP16 (ms)':>12} {'INT8 (ms)':>12} {'INT8 speedup':>14}"
+    )
     print("-" * 80)
 
     for M, K, N in configs:
@@ -78,7 +80,9 @@ def main():
         int8_vs_fp16 = fp16_time / int8_time
 
         config_str = f"({M}, {K}, {N})"
-        print(f"{config_str:<25} {fp32_time:>12.4f} {fp16_time:>12.4f} {int8_time:>12.4f} {int8_vs_fp16:>13.2f}x")
+        print(
+            f"{config_str:<25} {fp32_time:>12.4f} {fp16_time:>12.4f} {int8_time:>12.4f} {int8_vs_fp16:>13.2f}x"
+        )
 
     print()
 
@@ -122,7 +126,7 @@ def main():
     print("  INT8: 153 TOPS (Tensor Core)")
     print()
 
-    print(f"Utilization:")
+    print("Utilization:")
     print(f"  FP32: {fp32_tflops / 19.2 * 100:>5.1f}%")
     print(f"  FP16: {fp16_tflops / 77 * 100:>5.1f}%")
     print(f"  INT8: {int8_tops / 153 * 100:>5.1f}%")
@@ -138,7 +142,7 @@ def main():
     print("Key findings:")
     print()
     print("1. Raw INT8 matmul IS faster than FP16")
-    print(f"   - INT8 is ~{fp16_time/int8_time:.1f}x faster for pure matmul")
+    print(f"   - INT8 is ~{fp16_time / int8_time:.1f}x faster for pure matmul")
     print()
     print("2. BUT full INT8 inference has overhead:")
     print("   - Input quantization (FP32/FP16 -> INT8)")

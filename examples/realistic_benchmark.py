@@ -7,8 +7,9 @@ This benchmark shows:
 2. For memory-bound workloads, BitNet can match or beat FP16
 """
 
-import time
 import gc
+import time
+
 import torch
 import torch.nn as nn
 
@@ -69,7 +70,9 @@ def main():
         fp16_mem = params * 2 / 1024**3  # 2 bytes per param
         bitnet_mem = params * 2 / 16 / 1024**3  # 2-bit = 1/8 of FP16
 
-        print(f"{name:<25} {fp16_mem:>12.2f} GB {bitnet_mem:>12.2f} GB {fp16_mem/bitnet_mem:>10.1f}x")
+        print(
+            f"{name:<25} {fp16_mem:>12.2f} GB {bitnet_mem:>12.2f} GB {fp16_mem / bitnet_mem:>10.1f}x"
+        )
 
     print()
 
@@ -114,7 +117,7 @@ def main():
         except RuntimeError:
             bit_throughput = 0  # OOM
 
-        ratio = bit_throughput / fp16_throughput if fp16_throughput > 0 else float('inf')
+        ratio = bit_throughput / fp16_throughput if fp16_throughput > 0 else float("inf")
         print(f"{batch:<15} {fp16_throughput:>15,.0f} {bit_throughput:>15,.0f} {ratio:>10.2f}x")
 
     print()

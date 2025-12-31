@@ -5,13 +5,15 @@ True INT8 acceleration using TensorRT.
 Compares FP16 vs INT8 with proper Tensor Core utilization.
 """
 
-import time
 import gc
+import time
+
 import torch
 import torch.nn as nn
 
 try:
     import torch_tensorrt
+
     HAS_TENSORRT = True
 except ImportError:
     HAS_TENSORRT = False
@@ -55,7 +57,7 @@ def main():
     print(f"PyTorch: {torch.__version__}")
 
     if HAS_TENSORRT:
-        print(f"TensorRT: Available")
+        print("TensorRT: Available")
     else:
         print("TensorRT: Not available")
         print()
@@ -146,7 +148,7 @@ def main():
                 fp16_time = benchmark_model(model_fp16, x)
             except Exception as e:
                 print(f"FP16 compile failed: {e}")
-                fp16_time = float('inf')
+                fp16_time = float("inf")
 
             # TensorRT INT8
             try:
@@ -159,9 +161,9 @@ def main():
                 int8_time = benchmark_model(model_int8, x)
             except Exception as e:
                 print(f"INT8 compile failed: {e}")
-                int8_time = float('inf')
+                int8_time = float("inf")
 
-            speedup = fp16_time / int8_time if int8_time != float('inf') else 0
+            speedup = fp16_time / int8_time if int8_time != float("inf") else 0
 
             config_str = f"({batch}, {hidden})"
             print(f"{config_str:<20} {fp16_time:>12.4f} {int8_time:>12.4f} {speedup:>10.2f}x")

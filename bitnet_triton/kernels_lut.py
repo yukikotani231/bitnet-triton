@@ -18,7 +18,10 @@ import triton.language as tl
 
 @triton.jit
 def _build_lut_4(
-    x0: tl.tensor, x1: tl.tensor, x2: tl.tensor, x3: tl.tensor,
+    x0: tl.tensor,
+    x1: tl.tensor,
+    x2: tl.tensor,
+    x3: tl.tensor,
 ) -> tl.tensor:
     """
     Build 16-entry LUT for 4 activations with 1-bit weights (used as building block)
@@ -42,12 +45,12 @@ def _build_lut_4(
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_M': 16, 'BLOCK_N': 64, 'BLOCK_K': 64}, num_warps=4, num_stages=2),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 64, 'BLOCK_K': 64}, num_warps=4, num_stages=2),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 128, 'BLOCK_K': 32}, num_warps=4, num_stages=2),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 64, 'BLOCK_K': 32}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 16, "BLOCK_N": 64, "BLOCK_K": 64}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 64, "BLOCK_K": 64}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 128, "BLOCK_K": 32}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64, "BLOCK_K": 32}, num_warps=4, num_stages=2),
     ],
-    key=['M', 'N', 'K'],
+    key=["M", "N", "K"],
 )
 @triton.jit
 def _bitnet_lut_kernel(
@@ -55,10 +58,15 @@ def _bitnet_lut_kernel(
     packed_ptr,
     scale_ptr,
     output_ptr,
-    M, N, K,
-    stride_xm, stride_xk,
-    stride_pn, stride_pk,
-    stride_om, stride_on,
+    M,
+    N,
+    K,
+    stride_xm,
+    stride_xk,
+    stride_pn,
+    stride_pk,
+    stride_om,
+    stride_on,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
     BLOCK_K: tl.constexpr,
@@ -90,7 +98,7 @@ def _bitnet_lut_kernel(
         x = tl.load(
             x_ptr + offs_m[:, None] * stride_xm + offs_k[None, :] * stride_xk,
             mask=x_mask,
-            other=0.0
+            other=0.0,
         ).to(tl.float32)
 
         # Compute pack indices
@@ -102,7 +110,7 @@ def _bitnet_lut_kernel(
         packed = tl.load(
             packed_ptr + offs_n[:, None] * stride_pn + pack_idx[None, :] * stride_pk,
             mask=w_mask,
-            other=0
+            other=0,
         )
 
         # Unpack 2-bit weights to {-1, 0, 1}
@@ -120,19 +128,19 @@ def _bitnet_lut_kernel(
     tl.store(
         output_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on,
         output,
-        mask=out_mask
+        mask=out_mask,
     )
 
 
 @triton.autotune(
     configs=[
-        triton.Config({'BLOCK_M': 16, 'BLOCK_N': 64}, num_warps=4, num_stages=2),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 64}, num_warps=4, num_stages=2),
-        triton.Config({'BLOCK_M': 32, 'BLOCK_N': 128}, num_warps=8, num_stages=2),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 64}, num_warps=4, num_stages=2),
-        triton.Config({'BLOCK_M': 64, 'BLOCK_N': 128}, num_warps=8, num_stages=2),
+        triton.Config({"BLOCK_M": 16, "BLOCK_N": 64}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 64}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 32, "BLOCK_N": 128}, num_warps=8, num_stages=2),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 64}, num_warps=4, num_stages=2),
+        triton.Config({"BLOCK_M": 64, "BLOCK_N": 128}, num_warps=8, num_stages=2),
     ],
-    key=['M', 'N', 'K'],
+    key=["M", "N", "K"],
 )
 @triton.jit
 def _bitnet_ternary_acc_kernel(
@@ -140,10 +148,15 @@ def _bitnet_ternary_acc_kernel(
     packed_ptr,
     scale_ptr,
     output_ptr,
-    M, N, K,
-    stride_xm, stride_xk,
-    stride_pn, stride_pk,
-    stride_om, stride_on,
+    M,
+    N,
+    K,
+    stride_xm,
+    stride_xk,
+    stride_pn,
+    stride_pk,
+    stride_om,
+    stride_on,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
     BLOCK_K: tl.constexpr = 64,
@@ -176,7 +189,7 @@ def _bitnet_ternary_acc_kernel(
         x = tl.load(
             x_ptr + offs_m[:, None] * stride_xm + offs_k[None, :] * stride_xk,
             mask=x_mask,
-            other=0.0
+            other=0.0,
         ).to(tl.float32)
 
         # Load and unpack weights
@@ -187,15 +200,15 @@ def _bitnet_ternary_acc_kernel(
         packed = tl.load(
             packed_ptr + offs_n[:, None] * stride_pn + pack_idx[None, :] * stride_pk,
             mask=w_mask,
-            other=0
+            other=0,
         )
 
         # Extract 2-bit weights: 0=-1, 1=0, 2=+1
         w_bits = (packed >> (bit_idx[None, :] * 2)) & 0b11
 
         # Create masks for +1 and -1 weights
-        is_pos = (w_bits == 2)  # +1
-        is_neg = (w_bits == 0)  # -1
+        is_pos = w_bits == 2  # +1
+        is_neg = w_bits == 0  # -1
 
         # For +1 weights: accumulate x
         # For -1 weights: accumulate x (to subtract later)
@@ -216,7 +229,7 @@ def _bitnet_ternary_acc_kernel(
     tl.store(
         output_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on,
         output,
-        mask=out_mask
+        mask=out_mask,
     )
 
 
@@ -226,10 +239,15 @@ def _bitnet_true_lut_kernel(
     packed_ptr,
     scale_ptr,
     output_ptr,
-    M, N, K,
-    stride_xm, stride_xk,
-    stride_pn, stride_pk,
-    stride_om, stride_on,
+    M,
+    N,
+    K,
+    stride_xm,
+    stride_xk,
+    stride_pn,
+    stride_pk,
+    stride_om,
+    stride_on,
     BLOCK_M: tl.constexpr,
     BLOCK_N: tl.constexpr,
 ):
@@ -255,23 +273,33 @@ def _bitnet_true_lut_kernel(
     # Process 4 K elements at a time (8 bits of packed weight)
     for k_base in range(0, K, 4):
         # Load 4 activations [BLOCK_M]
-        x0 = tl.load(x_ptr + offs_m * stride_xm + (k_base + 0) * stride_xk,
-                     mask=(offs_m < M) & (k_base + 0 < K), other=0.0)
-        x1 = tl.load(x_ptr + offs_m * stride_xm + (k_base + 1) * stride_xk,
-                     mask=(offs_m < M) & (k_base + 1 < K), other=0.0)
-        x2 = tl.load(x_ptr + offs_m * stride_xm + (k_base + 2) * stride_xk,
-                     mask=(offs_m < M) & (k_base + 2 < K), other=0.0)
-        x3 = tl.load(x_ptr + offs_m * stride_xm + (k_base + 3) * stride_xk,
-                     mask=(offs_m < M) & (k_base + 3 < K), other=0.0)
+        x0 = tl.load(
+            x_ptr + offs_m * stride_xm + (k_base + 0) * stride_xk,
+            mask=(offs_m < M) & (k_base + 0 < K),
+            other=0.0,
+        )
+        x1 = tl.load(
+            x_ptr + offs_m * stride_xm + (k_base + 1) * stride_xk,
+            mask=(offs_m < M) & (k_base + 1 < K),
+            other=0.0,
+        )
+        x2 = tl.load(
+            x_ptr + offs_m * stride_xm + (k_base + 2) * stride_xk,
+            mask=(offs_m < M) & (k_base + 2 < K),
+            other=0.0,
+        )
+        x3 = tl.load(
+            x_ptr + offs_m * stride_xm + (k_base + 3) * stride_xk,
+            mask=(offs_m < M) & (k_base + 3 < K),
+            other=0.0,
+        )
 
         # Load packed weights [BLOCK_N]
         pack_idx = k_base // 16
         bit_offset = (k_base % 16) * 2
 
         packed = tl.load(
-            packed_ptr + offs_n * stride_pn + pack_idx * stride_pk,
-            mask=offs_n < N,
-            other=0
+            packed_ptr + offs_n * stride_pn + pack_idx * stride_pk, mask=offs_n < N, other=0
         )
 
         # Extract 2-bit weights (0=-1, 1=0, 2=+1)
@@ -282,10 +310,10 @@ def _bitnet_true_lut_kernel(
 
         # Convert to float: 0->-1, 1->0, 2->+1
         # Still uses subtraction but avoids explicit multiplication
-        w0f = (w0.to(tl.float32) - 1.0)  # [BLOCK_N]
-        w1f = (w1.to(tl.float32) - 1.0)
-        w2f = (w2.to(tl.float32) - 1.0)
-        w3f = (w3.to(tl.float32) - 1.0)
+        w0f = w0.to(tl.float32) - 1.0  # [BLOCK_N]
+        w1f = w1.to(tl.float32) - 1.0
+        w2f = w2.to(tl.float32) - 1.0
+        w3f = w3.to(tl.float32) - 1.0
 
         # Accumulate: x[m] * w[n] for each (m, n) pair
         # x: [BLOCK_M], w: [BLOCK_N] -> result: [BLOCK_M, BLOCK_N]
@@ -299,7 +327,7 @@ def _bitnet_true_lut_kernel(
     tl.store(
         output_ptr + offs_m[:, None] * stride_om + offs_n[None, :] * stride_on,
         output,
-        mask=out_mask
+        mask=out_mask,
     )
 
 
@@ -319,17 +347,26 @@ def bitnet_matmul_lut(
 
     output = torch.empty(M, N, dtype=x.dtype, device=x.device)
 
-    grid = lambda META: (
-        triton.cdiv(M, META['BLOCK_M']),
-        triton.cdiv(N, META['BLOCK_N']),
-    )
+    def grid(META):
+        return (
+            triton.cdiv(M, META["BLOCK_M"]),
+            triton.cdiv(N, META["BLOCK_N"]),
+        )
 
     _bitnet_lut_kernel[grid](
-        x, packed_weight, scale, output,
-        M, N, K,
-        x.stride(0), x.stride(1),
-        packed_weight.stride(0), packed_weight.stride(1),
-        output.stride(0), output.stride(1),
+        x,
+        packed_weight,
+        scale,
+        output,
+        M,
+        N,
+        K,
+        x.stride(0),
+        x.stride(1),
+        packed_weight.stride(0),
+        packed_weight.stride(1),
+        output.stride(0),
+        output.stride(1),
     )
 
     return output.view(*x_shape[:-1], N)
@@ -358,11 +395,19 @@ def bitnet_matmul_true_lut(
     grid = (triton.cdiv(M, BLOCK_M), triton.cdiv(N, BLOCK_N))
 
     _bitnet_true_lut_kernel[grid](
-        x, packed_weight, scale, output,
-        M, N, K,
-        x.stride(0), x.stride(1),
-        packed_weight.stride(0), packed_weight.stride(1),
-        output.stride(0), output.stride(1),
+        x,
+        packed_weight,
+        scale,
+        output,
+        M,
+        N,
+        K,
+        x.stride(0),
+        x.stride(1),
+        packed_weight.stride(0),
+        packed_weight.stride(1),
+        output.stride(0),
+        output.stride(1),
         BLOCK_M=BLOCK_M,
         BLOCK_N=BLOCK_N,
     )
@@ -387,17 +432,26 @@ def bitnet_matmul_ternary(
 
     output = torch.empty(M, N, dtype=x.dtype, device=x.device)
 
-    grid = lambda META: (
-        triton.cdiv(M, META['BLOCK_M']),
-        triton.cdiv(N, META['BLOCK_N']),
-    )
+    def grid(META):
+        return (
+            triton.cdiv(M, META["BLOCK_M"]),
+            triton.cdiv(N, META["BLOCK_N"]),
+        )
 
     _bitnet_ternary_acc_kernel[grid](
-        x, packed_weight, scale, output,
-        M, N, K,
-        x.stride(0), x.stride(1),
-        packed_weight.stride(0), packed_weight.stride(1),
-        output.stride(0), output.stride(1),
+        x,
+        packed_weight,
+        scale,
+        output,
+        M,
+        N,
+        K,
+        x.stride(0),
+        x.stride(1),
+        packed_weight.stride(0),
+        packed_weight.stride(1),
+        output.stride(0),
+        output.stride(1),
     )
 
     return output.view(*x_shape[:-1], N)

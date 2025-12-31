@@ -14,6 +14,7 @@ Simulates realistic LLM dimensions:
 
 import gc
 import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -95,7 +96,7 @@ class StandardTransformerLayer(nn.Module):
         qkv = self.qkv(h).reshape(B, T, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        attn = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
+        attn = (q @ k.transpose(-2, -1)) * (self.head_dim**-0.5)
         attn = attn.softmax(dim=-1)
         h = (attn @ v).transpose(1, 2).reshape(B, T, C)
         x = x + self.proj(h)
@@ -141,7 +142,7 @@ class BitNetTransformerLayer(nn.Module):
         qkv = self.qkv(h).reshape(B, T, 3, self.num_heads, self.head_dim).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        attn = (q @ k.transpose(-2, -1)) * (self.head_dim ** -0.5)
+        attn = (q @ k.transpose(-2, -1)) * (self.head_dim**-0.5)
         attn = attn.softmax(dim=-1)
         h = (attn @ v).transpose(1, 2).reshape(B, T, C)
         x = x + self.proj(h)
@@ -178,10 +179,10 @@ def count_parameters(model):
 def get_weight_memory_mb(model, packed=False):
     """Get memory used by weights only"""
     total = 0
-    for name, p in model.named_parameters():
+    for _name, p in model.named_parameters():
         if p is not None:
             total += p.numel() * p.element_size()
-    for name, b in model.named_buffers():
+    for _name, b in model.named_buffers():
         if b is not None:
             total += b.numel() * b.element_size()
     return total / 1024 / 1024
@@ -191,11 +192,11 @@ def get_bitnet_packed_memory_mb(model):
     """Get memory of packed weights only (for BitNet)"""
     total = 0
     for name, buf in model.named_buffers():
-        if buf is not None and ('packed' in name or 'scale' in name):
+        if buf is not None and ("packed" in name or "scale" in name):
             total += buf.numel() * buf.element_size()
     # Add LayerNorm parameters
     for name, p in model.named_parameters():
-        if p is not None and 'norm' in name:
+        if p is not None and "norm" in name:
             total += p.numel() * p.element_size()
     return total / 1024 / 1024
 
@@ -216,7 +217,7 @@ def main():
     print()
 
     hidden_dim = 1024
-    intermediate_dim = hidden_dim * 4
+    hidden_dim * 4
     num_layers = 2  # Use fewer layers for faster testing
 
     # Clear cache
@@ -226,12 +227,11 @@ def main():
 
     # Standard model
     base_mem = get_memory_mb()
-    standard_layers = nn.ModuleList([
-        StandardTransformerLayer(hidden_dim).cuda().half()
-        for _ in range(num_layers)
-    ])
+    standard_layers = nn.ModuleList(
+        [StandardTransformerLayer(hidden_dim).cuda().half() for _ in range(num_layers)]
+    )
     standard_mem = get_memory_mb() - base_mem
-    standard_params = sum(count_parameters(l) for l in standard_layers)
+    standard_params = sum(count_parameters(layer) for layer in standard_layers)
 
     print(f"Standard Transformer ({num_layers} layers):")
     print(f"  Parameters: {standard_params:,}")
@@ -247,10 +247,9 @@ def main():
     torch.cuda.reset_peak_memory_stats()
     base_mem = get_memory_mb()
 
-    bitnet_layers = nn.ModuleList([
-        BitNetTransformerLayer(hidden_dim).cuda()
-        for _ in range(num_layers)
-    ])
+    bitnet_layers = nn.ModuleList(
+        [BitNetTransformerLayer(hidden_dim).cuda() for _ in range(num_layers)]
+    )
 
     # Pack weights (2-bit compression) and delete FP32 weights
     for layer in bitnet_layers:
@@ -341,7 +340,9 @@ def main():
     batch, seq = 16, 128
     hidden_dims = [512, 1024, 2048, 4096]
 
-    print(f"{'Hidden Dim':<12} {'Std Mem (MB)':>14} {'Bit Mem (MB)':>14} {'Compression':>12} {'Std (ms)':>10} {'Bit (ms)':>10} {'Speedup':>10}")
+    print(
+        f"{'Hidden Dim':<12} {'Std Mem (MB)':>14} {'Bit Mem (MB)':>14} {'Compression':>12} {'Std (ms)':>10} {'Bit (ms)':>10} {'Speedup':>10}"
+    )
     print("-" * 95)
 
     for hidden in hidden_dims:
@@ -370,7 +371,9 @@ def main():
         compression = 16.0  # Theoretical: FP32 -> 2-bit
         speedup = std_time / bit_time
 
-        print(f"{hidden:<12} {std_mem:>14.1f} {bit_mem_theoretical:>14.1f} {compression:>12.1f}x {std_time:>10.3f} {bit_time:>10.3f} {speedup:>10.2f}x")
+        print(
+            f"{hidden:<12} {std_mem:>14.1f} {bit_mem_theoretical:>14.1f} {compression:>12.1f}x {std_time:>10.3f} {bit_time:>10.3f} {speedup:>10.2f}x"
+        )
 
         del bit_layer
         gc.collect()
@@ -397,7 +400,7 @@ def main():
     print(f"{'Model':<15} {'FP16 Memory':>14} {'BitNet Memory':>14} {'Savings':>12}")
     print("-" * 60)
 
-    for name, hidden, layers, heads in model_configs:
+    for name, hidden, layers, _heads in model_configs:
         # Estimate parameters per layer
         # QKV: hidden * hidden * 3
         # Proj: hidden * hidden
@@ -412,7 +415,9 @@ def main():
 
         savings_gb = fp16_mem_gb - bitnet_mem_gb
 
-        print(f"{name:<15} {fp16_mem_gb:>12.1f} GB {bitnet_mem_gb:>12.1f} GB {savings_gb:>10.1f} GB")
+        print(
+            f"{name:<15} {fp16_mem_gb:>12.1f} GB {bitnet_mem_gb:>12.1f} GB {savings_gb:>10.1f} GB"
+        )
 
     print()
     print("=" * 80)

@@ -7,11 +7,11 @@ Focus on linear layer performance where BitNet excels:
 """
 
 import time
+
 import torch
 import torch.nn as nn
 
 from bitnet_triton import BitLinearTriton
-from bitnet_triton.packing import pack_weights
 
 
 def benchmark_linear(layer, x, num_warmup=10, num_runs=100):
@@ -62,7 +62,9 @@ def main():
         (128, 4096, 4096),
     ]
 
-    print(f"{'Config (B,In,Out)':<20} {'FP32 Mem':>10} {'2bit Mem':>10} {'Compress':>10} {'FP32 (ms)':>12} {'BitNet (ms)':>12} {'Speedup':>10}")
+    print(
+        f"{'Config (B,In,Out)':<20} {'FP32 Mem':>10} {'2bit Mem':>10} {'Compress':>10} {'FP32 (ms)':>12} {'BitNet (ms)':>12} {'Speedup':>10}"
+    )
     print("-" * 95)
 
     for batch, in_feat, out_feat in configs:
@@ -88,7 +90,9 @@ def main():
         speedup = std_time / bit_time
 
         config_str = f"({batch}, {in_feat}, {out_feat})"
-        print(f"{config_str:<20} {std_mem:>9.1f}M {bit_mem:>9.2f}M {compression:>9.0f}x {std_time:>12.4f} {bit_time:>12.4f} {speedup:>10.2f}x")
+        print(
+            f"{config_str:<20} {std_mem:>9.1f}M {bit_mem:>9.2f}M {compression:>9.0f}x {std_time:>12.4f} {bit_time:>12.4f} {speedup:>10.2f}x"
+        )
 
         del std_layer, bit_layer
 

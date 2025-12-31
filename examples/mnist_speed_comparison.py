@@ -7,8 +7,9 @@ Comparing:
 3. BitNet (for reference)
 """
 
-import time
 import gc
+import time
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -17,10 +18,10 @@ from torchvision import datasets, transforms
 
 from bitnet_triton import BitLinearTriton
 
-
 # =============================================================================
 # Models
 # =============================================================================
+
 
 class NaiveViT(nn.Module):
     """Naive Vision Transformer - FP32, no optimization"""
@@ -34,9 +35,7 @@ class NaiveViT(nn.Module):
         self.pos_embed = nn.Parameter(torch.randn(1, num_patches, dim) * 0.02)
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim) * 0.02)
 
-        self.blocks = nn.ModuleList([
-            NaiveTransformerBlock(dim, heads) for _ in range(depth)
-        ])
+        self.blocks = nn.ModuleList([NaiveTransformerBlock(dim, heads) for _ in range(depth)])
 
         self.norm = nn.LayerNorm(dim)
         self.head = nn.Linear(dim, num_classes)
@@ -83,7 +82,7 @@ class NaiveAttention(nn.Module):
         super().__init__()
         self.heads = heads
         self.head_dim = dim // heads
-        self.scale = self.head_dim ** -0.5
+        self.scale = self.head_dim**-0.5
         self.qkv = nn.Linear(dim, dim * 3)
         self.proj = nn.Linear(dim, dim)
 
@@ -109,9 +108,7 @@ class FastViT(nn.Module):
         self.pos_embed = nn.Parameter(torch.randn(1, num_patches, dim) * 0.02)
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim) * 0.02)
 
-        self.blocks = nn.ModuleList([
-            FastTransformerBlock(dim, heads) for _ in range(depth)
-        ])
+        self.blocks = nn.ModuleList([FastTransformerBlock(dim, heads) for _ in range(depth)])
 
         self.norm = nn.LayerNorm(dim)
         self.head = nn.Linear(dim, num_classes)
@@ -181,9 +178,7 @@ class BitNetViT(nn.Module):
         self.pos_embed = nn.Parameter(torch.randn(1, num_patches, dim) * 0.02)
         self.cls_token = nn.Parameter(torch.randn(1, 1, dim) * 0.02)
 
-        self.blocks = nn.ModuleList([
-            BitNetTransformerBlock(dim, heads) for _ in range(depth)
-        ])
+        self.blocks = nn.ModuleList([BitNetTransformerBlock(dim, heads) for _ in range(depth)])
 
         self.norm = nn.LayerNorm(dim)
         self.head = nn.Linear(dim, num_classes)  # Keep FP32
@@ -258,6 +253,7 @@ class BitNetAttention(nn.Module):
 # Benchmark
 # =============================================================================
 
+
 def benchmark_inference(model, dataloader, device, num_batches=50):
     """Benchmark inference throughput"""
     model.eval()
@@ -310,11 +306,10 @@ def main():
     print()
 
     # Load MNIST
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
-    ])
-    test_dataset = datasets.MNIST('./data', train=False, download=True, transform=transform)
+    transform = transforms.Compose(
+        [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+    )
+    test_dataset = datasets.MNIST("./data", train=False, download=True, transform=transform)
 
     batch_sizes = [64, 128, 256, 512]
 
@@ -333,9 +328,13 @@ def main():
     bitnet = BitNetViT().cuda()
     bitnet.pack_weights()
 
-    print(f"  Naive (FP32):     {count_parameters(naive):,} params, {get_model_memory(naive):.1f} MB")
+    print(
+        f"  Naive (FP32):     {count_parameters(naive):,} params, {get_model_memory(naive):.1f} MB"
+    )
     print(f"  Fast (FP16):      {count_parameters(fast):,} params, {get_model_memory(fast):.1f} MB")
-    print(f"  BitNet (2-bit):   {count_parameters(bitnet):,} params, {get_model_memory(bitnet):.1f} MB")
+    print(
+        f"  BitNet (2-bit):   {count_parameters(bitnet):,} params, {get_model_memory(bitnet):.1f} MB"
+    )
     print()
 
     del naive, fast, bitnet
@@ -345,7 +344,9 @@ def main():
     # Benchmark each configuration
     print("Throughput (samples/sec):")
     print("-" * 80)
-    print(f"{'Batch Size':<12} {'Naive FP32':>15} {'Fast FP16':>15} {'Compiled':>15} {'BitNet':>15}")
+    print(
+        f"{'Batch Size':<12} {'Naive FP32':>15} {'Fast FP16':>15} {'Compiled':>15} {'BitNet':>15}"
+    )
     print("-" * 80)
 
     for batch_size in batch_sizes:
@@ -362,13 +363,16 @@ def main():
         gc.collect()
         torch.cuda.empty_cache()
         fast = FastViT().cuda().half()
+
         # Need to convert input to half
         class HalfWrapper(nn.Module):
             def __init__(self, model):
                 super().__init__()
                 self.model = model
+
             def forward(self, x):
                 return self.model(x.half())
+
         fast_wrapped = HalfWrapper(fast)
         fast_throughput = benchmark_inference(fast_wrapped, dataloader, device)
         del fast, fast_wrapped
@@ -396,7 +400,9 @@ def main():
         bitnet_throughput = benchmark_inference(bitnet, dataloader, device)
         del bitnet
 
-        print(f"{batch_size:<12} {naive_throughput:>15,.0f} {fast_throughput:>15,.0f} {compiled_throughput:>15,.0f} {bitnet_throughput:>15,.0f}")
+        print(
+            f"{batch_size:<12} {naive_throughput:>15,.0f} {fast_throughput:>15,.0f} {compiled_throughput:>15,.0f} {bitnet_throughput:>15,.0f}"
+        )
 
     print()
 

@@ -8,8 +8,9 @@ Compare different quantization approaches on GPU:
 - BitNet: 2-bit ternary weights
 """
 
-import time
 import gc
+import time
+
 import torch
 import torch.nn as nn
 
@@ -46,11 +47,13 @@ class INT8Linear(nn.Module):
         self.out_features = out_features
 
         # INT8 weights (stored as int8)
-        self.register_buffer('weight_int8', torch.zeros(out_features, in_features, dtype=torch.int8))
-        self.register_buffer('weight_scale', torch.zeros(out_features))
+        self.register_buffer(
+            "weight_int8", torch.zeros(out_features, in_features, dtype=torch.int8)
+        )
+        self.register_buffer("weight_scale", torch.zeros(out_features))
 
     @classmethod
-    def from_float(cls, linear: nn.Linear) -> 'INT8Linear':
+    def from_float(cls, linear: nn.Linear) -> "INT8Linear":
         """Convert FP32 Linear to INT8"""
         layer = cls(linear.in_features, linear.out_features)
 
@@ -59,10 +62,9 @@ class INT8Linear(nn.Module):
         scale = weight.abs().max(dim=1).values / 127.0
         scale = scale.clamp(min=1e-5)
 
-        weight_int8 = torch.clamp(
-            torch.round(weight / scale.unsqueeze(1)),
-            -128, 127
-        ).to(torch.int8)
+        weight_int8 = torch.clamp(torch.round(weight / scale.unsqueeze(1)), -128, 127).to(
+            torch.int8
+        )
 
         layer.weight_int8 = weight_int8
         layer.weight_scale = scale
@@ -87,12 +89,14 @@ class INT8LinearTensorCore(nn.Module):
         self.in_features = in_features
         self.out_features = out_features
 
-        self.register_buffer('weight_int8', torch.zeros(out_features, in_features, dtype=torch.int8))
-        self.register_buffer('weight_scale', torch.zeros(out_features))
-        self.register_buffer('input_scale', torch.tensor(1.0))
+        self.register_buffer(
+            "weight_int8", torch.zeros(out_features, in_features, dtype=torch.int8)
+        )
+        self.register_buffer("weight_scale", torch.zeros(out_features))
+        self.register_buffer("input_scale", torch.tensor(1.0))
 
     @classmethod
-    def from_float(cls, linear: nn.Linear) -> 'INT8LinearTensorCore':
+    def from_float(cls, linear: nn.Linear) -> "INT8LinearTensorCore":
         """Convert FP32 Linear to INT8"""
         layer = cls(linear.in_features, linear.out_features)
 
@@ -100,10 +104,9 @@ class INT8LinearTensorCore(nn.Module):
         scale = weight.abs().max(dim=1).values / 127.0
         scale = scale.clamp(min=1e-5)
 
-        weight_int8 = torch.clamp(
-            torch.round(weight / scale.unsqueeze(1)),
-            -128, 127
-        ).to(torch.int8)
+        weight_int8 = torch.clamp(torch.round(weight / scale.unsqueeze(1)), -128, 127).to(
+            torch.int8
+        )
 
         layer.weight_int8 = weight_int8
         layer.weight_scale = scale
@@ -204,25 +207,24 @@ def main():
         bitnet_time = benchmark_layer(bitnet_layer, x_fp32)
 
         # Find best
-        times = {
-            'FP32': fp32_time,
-            'FP16': fp16_time,
-            'INT8': int8_time,
-            'BitNet': bitnet_time
-        }
+        times = {"FP32": fp32_time, "FP16": fp16_time, "INT8": int8_time, "BitNet": bitnet_time}
         best = min(times, key=times.get)
 
         config_str = f"({batch}, {in_feat}, {out_feat})"
-        print(f"{config_str:<20} {fp32_time:>12.4f} {fp16_time:>12.4f} {int8_time:>12.4f} {bitnet_time:>12.4f} {best:>10}")
+        print(
+            f"{config_str:<20} {fp32_time:>12.4f} {fp16_time:>12.4f} {int8_time:>12.4f} {bitnet_time:>12.4f} {best:>10}"
+        )
 
-        results.append({
-            'config': (batch, in_feat, out_feat),
-            'fp32': fp32_time,
-            'fp16': fp16_time,
-            'int8': int8_time,
-            'bitnet': bitnet_time,
-            'best': best
-        })
+        results.append(
+            {
+                "config": (batch, in_feat, out_feat),
+                "fp32": fp32_time,
+                "fp16": fp16_time,
+                "int8": int8_time,
+                "bitnet": bitnet_time,
+                "best": best,
+            }
+        )
 
         del base_layer, fp32_layer, fp16_layer, int8_layer, bitnet_layer
 
@@ -268,9 +270,9 @@ def main():
     print()
 
     # Count wins
-    wins = {'FP32': 0, 'FP16': 0, 'INT8': 0, 'BitNet': 0}
+    wins = {"FP32": 0, "FP16": 0, "INT8": 0, "BitNet": 0}
     for r in results:
-        wins[r['best']] += 1
+        wins[r["best"]] += 1
 
     print("Performance wins:")
     for method, count in sorted(wins.items(), key=lambda x: -x[1]):

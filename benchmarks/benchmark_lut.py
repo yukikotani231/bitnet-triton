@@ -12,11 +12,15 @@ Hypothesis:
 """
 
 import time
+
 import torch
-import triton
 
 from bitnet_triton.kernels import bitnet_matmul
-from bitnet_triton.kernels_lut import bitnet_matmul_lut, bitnet_matmul_ternary, bitnet_matmul_true_lut
+from bitnet_triton.kernels_lut import (
+    bitnet_matmul_lut,
+    bitnet_matmul_ternary,
+    bitnet_matmul_true_lut,
+)
 from bitnet_triton.packing import pack_weights
 
 
@@ -76,22 +80,18 @@ def main():
         (1, 512, 512),
         (1, 1024, 1024),
         (1, 2048, 2048),
-
         # Small batch
         (8, 256, 256),
         (8, 512, 512),
         (8, 1024, 1024),
-
         # Medium batch
         (32, 256, 256),
         (32, 512, 512),
         (32, 1024, 1024),
-
         # Large batch
         (128, 256, 256),
         (128, 512, 512),
         (128, 1024, 1024),
-
         # Large dimensions
         (1, 4096, 4096),
         (8, 4096, 4096),
@@ -104,7 +104,9 @@ def main():
     print()
 
     # Header
-    print(f"{'Config':<18} {'Current':>10} {'LUT':>10} {'Ternary':>10} {'TrueLUT':>10} {'Best':>10}")
+    print(
+        f"{'Config':<18} {'Current':>10} {'LUT':>10} {'Ternary':>10} {'TrueLUT':>10} {'Best':>10}"
+    )
     print("-" * 78)
 
     for M, K, N in configs:
@@ -121,7 +123,9 @@ def main():
         if configs.index((M, K, N)) == 0:
             verify_correctness(packed, scale, K, device)
             print()
-            print(f"{'Config':<18} {'Current':>10} {'LUT':>10} {'Ternary':>10} {'TrueLUT':>10} {'Best':>10}")
+            print(
+                f"{'Config':<18} {'Current':>10} {'LUT':>10} {'Ternary':>10} {'TrueLUT':>10} {'Best':>10}"
+            )
             print("-" * 78)
 
         # Benchmark
@@ -129,32 +133,39 @@ def main():
             time_current = benchmark_kernel(bitnet_matmul, x, packed, scale, K)
         except Exception as e:
             print(f"Current kernel failed: {e}")
-            time_current = float('inf')
+            time_current = float("inf")
 
         try:
             time_lut = benchmark_kernel(bitnet_matmul_lut, x, packed, scale, K)
         except Exception as e:
             print(f"LUT kernel failed: {e}")
-            time_lut = float('inf')
+            time_lut = float("inf")
 
         try:
             time_ternary = benchmark_kernel(bitnet_matmul_ternary, x, packed, scale, K)
         except Exception as e:
             print(f"Ternary kernel failed: {e}")
-            time_ternary = float('inf')
+            time_ternary = float("inf")
 
         try:
             time_true_lut = benchmark_kernel(bitnet_matmul_true_lut, x, packed, scale, K)
         except Exception as e:
             print(f"TrueLUT kernel failed: {e}")
-            time_true_lut = float('inf')
+            time_true_lut = float("inf")
 
         # Determine best
-        times = {'Current': time_current, 'LUT': time_lut, 'Ternary': time_ternary, 'TrueLUT': time_true_lut}
+        times = {
+            "Current": time_current,
+            "LUT": time_lut,
+            "Ternary": time_ternary,
+            "TrueLUT": time_true_lut,
+        }
         best = min(times, key=times.get)
 
         config_str = f"({M}, {K}, {N})"
-        print(f"{config_str:<18} {time_current:>10.3f} {time_lut:>10.3f} {time_ternary:>10.3f} {time_true_lut:>10.3f} {best:>10}")
+        print(
+            f"{config_str:<18} {time_current:>10.3f} {time_lut:>10.3f} {time_ternary:>10.3f} {time_true_lut:>10.3f} {best:>10}"
+        )
 
     print()
     print("=" * 90)
